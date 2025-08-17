@@ -1,5 +1,8 @@
 **Tutorial Instalasi FreeRADIUS + MySQL + phpMyAdmin di Ubuntu/Debian**
 
+- Topologi Jaringan
+<img width="941" height="797" alt="image" src="https://github.com/user-attachments/assets/2e97809d-4dfe-433e-8eef-bc3404c9e34a" />
+
 ---
 
 ### **1️⃣ Update & Upgrade Sistem**

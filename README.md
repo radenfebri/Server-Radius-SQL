@@ -117,6 +117,28 @@ read_clients = yes
 client_table = "nas"
 ```
 
+```text
+   mysql {
+                # If any of the files below are set, TLS encryption is enabled
+                #tls {
+                #       ca_file = "/etc/ssl/certs/my_ca.crt"
+                #       ca_path = "/etc/ssl/certs/"
+                #       certificate_file = "/etc/ssl/certs/private/client.crt"
+                #       private_key_file = "/etc/ssl/certs/private/client.key"
+                #       cipher = "DHE-RSA-AES256-SHA:AES128-SHA"
+
+                #       tls_required = yes
+                #       tls_check_cert = no
+                #       tls_check_cert_cn = no
+                #}
+
+                # If yes, (or auto and libmysqlclient reports warnings are
+                # available), will retrieve and log additional warnings from
+                # the server if an error has occured. Defaults to 'auto'
+                warnings = auto
+        }
+```
+
 - Pastikan koneksi ke database berjalan.
 
 ---
@@ -159,9 +181,6 @@ sudo apt install -y phpmyadmin
 ```sql
 INSERT INTO nas (nasname, shortname, type, ports, secret, description) VALUES
 ('172.123.123.2', 'NAS-2', 'other', 0, 'secret123', 'NAS segment 172.123.123.2'),
-('172.123.123.3', 'NAS-3', 'other', 0, 'secret123', 'NAS segment 172.123.123.3'),
-('172.123.123.4', 'NAS-4', 'other', 0, 'secret123', 'NAS segment 172.123.123.4'),
-('172.123.123.5', 'NAS-5', 'other', 0, 'secret123', 'NAS segment 172.123.123.5');
 ```
 
 - Tambahkan user dan password di tabel `radcheck`:
@@ -169,19 +188,13 @@ INSERT INTO nas (nasname, shortname, type, ports, secret, description) VALUES
 ```sql
 INSERT INTO radcheck (username, attribute, op, value) VALUES
 ('clien1', 'Cleartext-Password', ':=', 'secret123'),
-('clien2', 'Cleartext-Password', ':=', 'secret123'),
-('clien3', 'Cleartext-Password', ':=', 'secret123'),
-('clien4', 'Cleartext-Password', ':=', 'secret123');
 ```
 
 - Tambahkan profil Mikrotik untuk user di tabel `radreply`:
 
 ```sql
 INSERT INTO radreply (username, attribute, op, value) VALUES
-('clien1', 'Mikrotik-Profile', ':=', 'INTERNET-10M'),
-('clien2', 'Mikrotik-Profile', ':=', 'INTERNET-20M'),
-('clien3', 'Mikrotik-Profile', ':=', 'INTERNET-10M'),
-('clien1', 'Mikrotik-Profile', ':=', 'INTERNET-20M');
+('clien1', 'Mikrotik-Group', ':=', 'profile1'),
 ```
 
 - NAS, user, dan profil bisa ditambahkan secara dinamis kapan saja lewat phpMyAdmin.

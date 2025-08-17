@@ -170,6 +170,11 @@ sudo systemctl restart freeradius.service
 sudo apt install -y phpmyadmin
 ```
 
+<img width="961" height="255" alt="image" src="https://github.com/user-attachments/assets/e54c6742-36ac-4ad4-a415-17749adc2e39" />
+
+<img width="1536" height="283" alt="image" src="https://github.com/user-attachments/assets/ca946f71-2db8-4312-b02f-7e00d909738b" />
+
+
 - GUI web untuk mengelola database FreeRADIUS.
 
 ---

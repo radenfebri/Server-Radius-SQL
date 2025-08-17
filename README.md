@@ -174,6 +174,9 @@ sudo apt install -y phpmyadmin
 
 <img width="1536" height="283" alt="image" src="https://github.com/user-attachments/assets/ca946f71-2db8-4312-b02f-7e00d909738b" />
 
+<img width="1516" height="676" alt="image" src="https://github.com/user-attachments/assets/bc5e957b-470f-4ab0-b902-611a546d66c5" />
+
+<img width="1919" height="944" alt="image" src="https://github.com/user-attachments/assets/5707662e-5f80-4523-a436-dd5d62f898aa" />
 
 - GUI web untuk mengelola database FreeRADIUS.
 
@@ -211,6 +214,11 @@ INSERT INTO radreply (username, attribute, op, value) VALUES
 ```bash
 radtest username password localhost 0 testing123
 ```
+- Berikut link Tools untuk check Radius Server
+ 
+https://ntradping.apponic.com/
+
+<img width="676" height="429" alt="image" src="https://github.com/user-attachments/assets/f238f497-9552-467b-ba49-e1e7e51f578c" />
 
 - Cek autentikasi FreeRADIUS.
 

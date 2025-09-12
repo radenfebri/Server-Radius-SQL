@@ -1,32 +1,48 @@
+FreeRADIUS dengan IP Pool Management
+Dokumentasi ini menjelaskan langkah-langkah instalasi dan konfigurasi FreeRADIUS dengan MySQL dan manajemen IP Pool.
+
+Prerequisites
+Sistem operasi Ubuntu/Debian
+
+Akses root/sudo
+
+Instalasi Paket
+1. Update Sistem dan Install FreeRADIUS
+bash
 sudo apt update && sudo apt upgrade -y
-
-
 sudo apt install -y freeradius freeradius-mysql freeradius-utils
-
-
+2. Install Web Server dan Database
+bash
 sudo apt install -y apache2 php libapache2-mod-php php-{gd,common,mail,mail-mime,mysql,pear,db,mbstring,xml,curl} mysql-server phpMyAdmin
-
-
+Konfigurasi Database
+1. Buat Database dan User Radius
+bash
 sudo mysql -u root -p
+Jalankan perintah SQL berikut:
 
-# Buat user radius dan database
+sql
 CREATE DATABASE radius;
 CREATE USER 'radius'@'localhost' IDENTIFIED BY 'password_radius';
 GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
-
-
-
+2. Import Skema Database
+bash
 mysql -u radius -p radius < /etc/freeradius/3.0/mods-config/sql/main/mysql/schema.sql
 mysql -u radius -p radius < /etc/freeradius/3.0/mods-config/sql/ippool/mysql/schema.sql
-
-
+Konfigurasi FreeRADIUS
+1. Aktifkan Modul SQL
+bash
 ln -s /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/
 ln -s /etc/freeradius/3.0/mods-available/sqlippool /etc/freeradius/3.0/mods-enabled/
+2. Konfigurasi SQL IP Pool
+Edit file /etc/freeradius/3.0/mods-available/sqlippool:
 
+bash
+nano /etc/freeradius/3.0/mods-available/sqlippool
+Tambahkan konfigurasi berikut:
 
-nano /et/freeradius/3.0/mods-available/sqlippool
+text
 sqlippool {
     sql_module_instance = "sql"
     dialect = "mysql"
@@ -38,10 +54,14 @@ sqlippool {
     pool_key = "%{User-Name}"
     $INCLUDE ${modconfdir}/sql/ippool/${dialect}/queries.conf
 }
+3. Konfigurasi Situs Default
+Edit file /etc/freeradius/3.0/sites-enabled/default:
 
-
-
+bash
 nano /etc/freeradius/3.0/sites-enabled/default
+Tambahkan sqlippool pada section authorize dan post-auth:
+
+text
 authorize {
     ...
     sqlippool
@@ -53,19 +73,20 @@ post-auth {
     sqlippool
     ...
 }
+4. Konfigurasi Query IP Pool
+Edit file /etc/freeradius/3.0/mods-config/sql/ippool/mysql/queries.conf:
 
+bash
+nano /etc/freeradius/3.0/mods-config/sql/ippool/mysql/queries.conf
+Tambahkan query berikut:
 
-
-
-nano /etc/freeradius/3.0# cat mods-config/sql/ippool/mysql/queries.conf
-
+text
 allocate_existing = "\
 	SELECT framedipaddress FROM ${ippool_table} \
 	WHERE pool_name = '%{control:${pool_name}}' AND pool_key = '${pool_key}' \
 	ORDER BY expiry_time DESC \
 	LIMIT 1 \
 	FOR UPDATE ${skip_locked}"
-
 
 allocate_find = "\
         SELECT framedipaddress FROM ${ippool_table} \
@@ -75,13 +96,10 @@ allocate_find = "\
         LIMIT 1 \
         FOR UPDATE ${skip_locked}"
 
-
 pool_check = "\
         SELECT id FROM ${ippool_table} \
         WHERE pool_name='%{control:${pool_name}}' \
         LIMIT 1"
-
-
 
 allocate_update = "\
         UPDATE ${ippool_table} \
@@ -91,8 +109,6 @@ allocate_update = "\
                 username = '%{User-Name}', expiry_time = NOW() + INTERVAL ${lease_duration} SECOND \
         WHERE framedipaddress = '%I'"
 
-
-
 start_update = "\
         UPDATE ${ippool_table} \
         SET \
@@ -101,7 +117,6 @@ start_update = "\
         AND username = '%{User-Name}' \
         AND callingstationid = '%{Calling-Station-Id}' \
         AND framedipaddress = '%{${attribute_name}}'"
-
 
 stop_clear = "\
 UPDATE ${ippool_table} \
@@ -113,8 +128,6 @@ SET \
     expiry_time = NOW() \
 WHERE framedipaddress = '%{Framed-IP-Address}'"
 
-
-
 alive_update = "\
         UPDATE ${ippool_table} \
         SET \
@@ -125,28 +138,33 @@ alive_update = "\
         AND callingstationid = '%{Calling-Station-Id}' \
         AND framedipaddress = '%{${attribute_name}}'"
 
-
 on_clear = "\
         UPDATE ${ippool_table} \
         SET \
                 expiry_time = NOW() \
         WHERE nasipaddress = '%{%{Nas-IP-Address}:-%{Nas-IPv6-Address}}'"
 
-
 off_clear = "\
         UPDATE ${ippool_table} \
         SET \
                 expiry_time = NOW() \
         WHERE nasipaddress = '%{%{Nas-IP-Address}:-%{Nas-IPv6-Address}}'"
-
-
+Testing dan Timezone
+1. Test FreeRADIUS
+bash
 sudo freeradius -X
-
-
+2. Set Timezone
+bash
 sudo timedatectl set-timezone Asia/Jakarta
+Script Maintenance
+1. Script Clear Expired IP
+Buat file /usr/local/bin/clear_expired_ip.sh:
 
-
+bash
 nano /usr/local/bin/clear_expired_ip.sh
+Isi dengan:
+
+bash
 #!/bin/bash
 # file: /usr/local/bin/clear_expired_ip.sh
 
@@ -178,44 +196,8 @@ for IP in $EXPIRED_IPS; do
         echo "IP $IP masih digunakan, tidak di-clear"
     fi
 done
+2. Script Clear Old Radius Data
+Buat file /usr/local/bin/clear_old_radius.sh:
 
-
-
-
-nano /usr/local/bin/clear_old_radius.sh
-root@server:/etc/freeradius/3.0# cat /usr/local/bin/clear_old_radius.sh 
-#!/bin/bash
-# file: /usr/local/bin/clean_old_radius.sh
-
-DB_USER="radius-user"
-DB_PASS="P@ssw0rd"
-DB_NAME="radius"
-DB_HOST="localhost"
-
-# Hapus data di radacct yang lebih dari 30 hari
-mysql -u $DB_USER -p$DB_PASS -h $DB_HOST $DB_NAME -e "
-DELETE FROM radacct
-WHERE acctstarttime < NOW() - INTERVAL 30 DAY;
-"
-
-# Hapus data di radpostauth yang lebih dari 30 hari
-mysql -u $DB_USER -p$DB_PASS -h $DB_HOST $DB_NAME -e "
-DELETE FROM radpostauth
-WHERE authdate < NOW() - INTERVAL 30 DAY;
-"
-
-echo "Old radius data older than 30 days cleaned at $(date)"
-
-
-
-crontab -e                                                                  
-* * * * * /usr/local/bin/clear_expired_ip.sh
-0 3 1 * * /usr/local/bin/clear_old_radius.sh
-
-
-
-chmod +x /usr/local/bin/clear_expired_ip.sh
-chmod +x /usr/local/bin/clear_old_radius.sh
-
-
-
+bash
+nano /usr/local/bi
